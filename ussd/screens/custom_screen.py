@@ -46,9 +46,7 @@ class CustomScreen(UssdHandlerAbstract):
             specific fields
         3. You can define any field that you feel
             your custom screen might need.
-            
     EXAMPLE:
-        
         examples of custom screen 
             .. code-block:: python
             
