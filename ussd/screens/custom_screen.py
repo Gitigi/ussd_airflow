@@ -7,13 +7,14 @@ from ussd.utilities import str_to_class
 class CustomScreenSerializer(UssdBaseSerializer):
     screen_obj = serializers.CharField(max_length=255)
 
-    def validate_screen_obj(self, value):
+    @staticmethod
+    def validate_screen_obj(value):
         try:
             screen_obj = str_to_class(value)
         except Exception as e:
             raise serializers.ValidationError(str(e))
         else:
-            if not type(screen_obj) == UssdHandlerMetaClass:
+            if not isinstance(screen_obj, UssdHandlerMetaClass):
                 raise serializers.ValidationError(
                     "Screen object should be of type UssdHandlerAbstract"
                 )
@@ -45,7 +46,6 @@ class CustomScreen(UssdHandlerAbstract):
             specific fields
         3. You can define any field that you feel
             your custom screen might need.
-            
             
     EXAMPLE:
         
