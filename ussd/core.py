@@ -10,7 +10,7 @@ import staticconf
 from django.conf import settings
 from importlib import import_module
 from django.contrib.sessions.backends import signed_cookies
-from django.contrib.sessions.backends.base import CreateError
+from django.contrib.sessions.backends.base import CreateError, SessionBase
 from jinja2 import Template, Environment, TemplateSyntaxError
 from .screens.serializers import UssdBaseSerializer
 from rest_framework.serializers import SerializerMetaclass
@@ -20,7 +20,10 @@ import os
 from configure import Configuration
 from datetime import datetime
 from ussd import defaults
-
+from ussd.models import SessionLookup
+from annoying.functions import get_object_or_None
+from ussd import defaults as ussd_airflow_variables
+from django.utils import timezone
 
 _registered_ussd_handlers = {}
 _registered_filters = {}
@@ -43,13 +46,17 @@ def register_filter(func_name, *args, **kwargs):
     _registered_filters[filter_name] = func_name
 
 
-def ussd_session(session_id):
-    # Make a session storage
-    session_engine = import_module(getattr(settings, "USSD_SESSION_ENGINE", settings.SESSION_ENGINE))
+def get_session_engine():
+    session_engine = import_module(getattr(settings, "USSD_SESSION_ENGINE",
+                                           settings.SESSION_ENGINE))
     if session_engine is signed_cookies:
-        raise ValueError("You cannot use channels session functionality with signed cookie sessions!")
-    # Force the instance to load in case it resets the session when it does
-    session = session_engine.SessionStore(session_key=session_id)
+        raise ValueError("You cannot use channels session "
+                         "functionality with signed cookie sessions!")
+    return session_engine
+
+
+def ussd_session(session_id):
+    session = get_session_engine().SessionStore(session_key=session_id)
     session._session.keys()
     session._session_key = session_id
 
@@ -63,6 +70,12 @@ def ussd_session(session_id):
             raise DuplicateSessionId("another sever is working"
                                      "on this session id")
     return session
+
+
+def generate_session_id():
+    session_store = get_session_engine().SessionStore()
+    session_store.save()  # generate session_key
+    return session_store.session_key
 
 
 def load_yaml(file_path, namespace):
@@ -114,17 +127,56 @@ class UssdRequest(object):
             ussdRequest.name
     """
     def __init__(self, session_id, phone_number,
-                 ussd_input, language, default_language=None, **kwargs):
-        """Represents a USSD request"""
+                 ussd_input, language, default_language=None,
+                 use_built_in_session_management=False,
+                 expiry=180,
+                 **kwargs):
+        """
+        
+        :param session_id: Used to maintain session 
+        :param phone_number: user dialing in   
+        :param ussd_input: input entered by user
+        :param language: language to be used
+        :param default_language: language to used
+        :param use_built_in_session_management: Used to enable ussd_airflow to 
+            manage its own session, by default its set to False, is set to true 
+        then the session_id should be None and expiry can't be None. 
+        :param expiry: Its only used if use_built_in_session_management has
+        been enabled. 
+        :param kwargs: All other extra arguments
+        """
+
+        self.expiry = expiry
+        # A bit of defensive programming to make sure
+        # session_built_in_management has been initiated
+        if use_built_in_session_management and session_id is not None:
+            raise InvalidAttribute("When using built_in_session_management "
+                                   "has been enabled session_id should "
+                                   "be None")
+        if use_built_in_session_management and expiry is None:
+            raise InvalidAttribute("When built_in_session_management has been"
+                                   "enabled expiry should not be None")
+        # session id should not be None if built in session management
+        # has not been enabled
+        if session_id is None and not use_built_in_session_management:
+            raise InvalidAttribute(
+                "Session id should not be None if built in session management "
+                "has not been enabled"
+            )
+
+        if use_built_in_session_management:
+            session_id = self.get_or_create_session_id(phone_number)
+        else:
+            # if session id is less than 8 should provide the
+            # suplimentary characters with 's'
+            if len(str(
+                    session_id)) < 8 and not use_built_in_session_management:
+                session_id = 's' * (8 - len(str(session_id))) + session_id
 
         self.phone_number = phone_number
         self.input = unquote(ussd_input)
         self.language = language
         self.default_language = default_language or 'en'
-        # if session id is less than 8 should provide the
-        # suplimentary characters with 's'
-        if len(str(session_id)) < 8:
-            session_id = 's' * (8 - len(str(session_id))) + session_id
         self.session_id = session_id
         self.session = ussd_session(self.session_id)
 
@@ -150,6 +202,34 @@ class UssdRequest(object):
         all_variables.pop("session", None)
 
         return all_variables
+
+    def get_or_create_session_id(self, user_id):
+        session_mapping = get_object_or_None(SessionLookup, user_id=user_id)
+
+        # if its missing create a new one.
+        if session_mapping is None:
+            session_mapping = SessionLookup.objects.create(
+                user_id=user_id,
+                session_id=generate_session_id()
+            )
+        else:
+            session = ussd_session(session_mapping.session_id)
+
+            # check inactivity or if session has been closed
+            inactivity_duration = (datetime.now() - session.get(
+                ussd_airflow_variables.last_update,
+                timezone.make_naive(session_mapping.updated_at))
+                                   ).total_seconds()
+            if inactivity_duration > self.expiry or \
+                    session.get(ussd_airflow_variables.expiry):
+
+                # update session_mapping with the new session_id
+                session_mapping.session_id = generate_session_id()
+                session_mapping.save()
+
+        return session_mapping.session_id
+
+
 
 
 class UssdResponse(object):
@@ -517,6 +597,8 @@ class UssdView(APIView):
 
         # Invoke handlers
         ussd_response = self.run_handlers(ussd_request)
+        ussd_request.session[ussd_airflow_variables.last_update] = \
+            datetime.now()
         # Save session
         ussd_request.session.save()
         self.logger.debug('gateway_response', text=ussd_response.dumps(),
