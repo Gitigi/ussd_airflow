@@ -10,7 +10,7 @@ import staticconf
 from django.conf import settings
 from importlib import import_module
 from django.contrib.sessions.backends import signed_cookies
-from django.contrib.sessions.backends.base import CreateError, SessionBase
+from django.contrib.sessions.backends.base import CreateError
 from jinja2 import Template, Environment, TemplateSyntaxError
 from .screens.serializers import UssdBaseSerializer
 from rest_framework.serializers import SerializerMetaclass
@@ -19,7 +19,6 @@ import json
 import os
 from configure import Configuration
 from datetime import datetime
-from ussd import defaults
 from ussd.models import SessionLookup
 from annoying.functions import get_object_or_None
 from ussd import defaults as ussd_airflow_variables
@@ -132,7 +131,6 @@ class UssdRequest(object):
                  expiry=180,
                  **kwargs):
         """
-        
         :param session_id: Used to maintain session 
         :param phone_number: user dialing in   
         :param ussd_input: input entered by user
