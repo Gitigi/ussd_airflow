@@ -320,7 +320,7 @@ class UssdHandlerAbstract(object, metaclass=UssdHandlerMetaClass):
 
     def get_text_limit(self):
         return self.initial_screen.get("ussd_text_limit",
-                                       defaults.ussd_text_limit)
+                                       ussd_airflow_variables.ussd_text_limit)
 
     def show_ussd_content(self, **kwargs):
         raise NotImplementedError
