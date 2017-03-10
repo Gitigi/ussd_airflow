@@ -204,8 +204,11 @@ class MenuScreen(UssdHandlerAbstract):
             # Lets create pages
             text = ""
             if len(pages) > 0:
-                text += "00. Back\n"
-            text += "98. More\n"
+                text += "00. {back_option}".format(
+                    back_option=self.pagination_back_option)
+            text += "98. {more_option}".format(
+                more_option=self.pagination_more_option
+            )
 
             # update ussd_text_limit to the one that considers pages
             ussd_text_limit = ussd_text_limit - len(text) - 1
@@ -234,7 +237,8 @@ class MenuScreen(UssdHandlerAbstract):
         # Todo use back off strategy to generate the pages
         text = ""
         if len(pages) > 0:
-            text += "00. Back\n"
+            text += "00. {back_option}".format(
+                back_option=self.pagination_back_option)
 
         if not options:
             pages.append(
@@ -244,7 +248,8 @@ class MenuScreen(UssdHandlerAbstract):
 
         ussd_text_cadidate = ussd_text + options[0].text
         # detect if there might be more optoins
-        text += "98. More\n" \
+        text += "98. {more_option}".format(more_option=
+                                           self.pagination_more_option) \
             if len(ussd_text_cadidate) > self.get_text_limit() - len(text) \
             else ''
         if len(ussd_text_cadidate) <= self.get_text_limit() - len(text):
@@ -354,12 +359,6 @@ class MenuScreen(UssdHandlerAbstract):
                 )
             )
         return menu_options
-
-    @staticmethod
-    def _add_end_line(text):
-        if text and '\n' not in text:
-            text += '\n'
-        return text
 
     def display_options(self, list_items: list, start_index: int = 1) -> str:
         text = ""
