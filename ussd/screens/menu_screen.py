@@ -357,33 +357,6 @@ class MenuScreen(UssdHandlerAbstract):
             )
         return menu_options
 
-    def display_options(self, list_items: list, start_index: int = 1) -> str:
-        text = ""
-        customized_option = ""
-        for index, item in enumerate(list_items, start_index):
-            index = "{index}. ".format(index=index) \
-                if getattr(item, 'index_display', None) is None \
-                else item.index_display
-
-            option_text = "{index}{text}".format(
-                index=index,
-                text=self._add_end_line(
-                    self.get_text(text_context=item.text)
-                )
-            )
-
-            # options that have a customized way presenting menu
-            # should appear last after the once that are numbered
-            text = text + option_text \
-                if getattr(item, 'index_display', None) is None \
-                else text
-
-            customized_option = customized_option + option_text \
-                if getattr(item, 'index_display', None) is not None \
-                else customized_option
-
-        return text + customized_option
-
     def handle_invalid_input(self):
         return UssdResponse(
             self._add_end_line(
