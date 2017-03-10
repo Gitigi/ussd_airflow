@@ -227,8 +227,6 @@ class MenuScreen(UssdHandlerAbstract):
 
         return Paginator(pages, 1)
 
-
-
     def paginate_options(self, ussd_text, pages, options):
         """
         Assumptions:
@@ -264,7 +262,6 @@ class MenuScreen(UssdHandlerAbstract):
                 pages,
                 options[1:]
             )
-
 
     def handle_ussd_input(self, ussd_input):
         # check if input is for previous or next page
