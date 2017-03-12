@@ -263,7 +263,7 @@ class UssdHandlerMetaClass(type):
 
         abstract = attr.get('abstract', False)
 
-        if not abstract:
+        if not abstract or attr.get('screen_type', '') == 'custom_screen':
             required_attributes = ('screen_type', 'serializer', 'handle')
 
             # check all attributes have been defined
@@ -298,7 +298,10 @@ class UssdHandlerAbstract(object, metaclass=UssdHandlerMetaClass):
             '{{', '}}'))
         self.clean_regex = re.compile(r'^{{\s*(\S*)\s*}}$')
         self.logger = logger or get_logger(__name__).bind(
-            **ussd_request.all_variables())
+            handler=self.handler,
+            screen_type=getattr(self, 'screen_type', 'custom_screen'),
+            **ussd_request.all_variables(),
+        )
         self.template_namespace = template_namespace
         self.initial_screen = initial_screen
 
