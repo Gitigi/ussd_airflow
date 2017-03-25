@@ -26,29 +26,50 @@ class InitialScreen(UssdHandlerAbstract):
 
         if isinstance(self.screen_content, dict):
             if self.screen_content.get('variables'):
-                variable_conf = self.screen_content['variables']
-                file_path = variable_conf['file']
-                namespace = variable_conf['namespace']
-
-                # check if it has been loaded
-                if not namespace in \
-                        staticconf.config.configuration_namespaces:
-                    load_yaml(file_path, namespace)
-
-                self.ussd_request.session['template_namespace'] = namespace
+                self.load_variable_files()
 
             # create ussd variables defined int the yaml
-            for key, value in \
-                    self.screen_content.get('create_ussd_variables', {}).\
-                            items():
-                self.ussd_request.session[key] = \
-                    self.evaluate_jija_expression(value, lazy_evaluating=True)
+            self.create_variables()
 
             # set default language
-            self.ussd_request.session['default_language'] = \
-                self.screen_content.get('default_language', 'en')
-            return self.ussd_request.forward(
-                self.screen_content['next_screen']
-            )
+            self.set_language()
+
+            next_screen = self.screen_content['next_screen']
+
+            # call report session
+            if self.screen_content.get('ussd_report_session'):
+                self.fire_ussd_report_session_task(self.initial_screen,
+                                                   self.ussd_request.session_id
+                                                   )
         else:
-            return self.ussd_request.forward(self.screen_content)
+            next_screen = self.screen_content
+        return self.ussd_request.forward(next_screen)
+
+    def create_variables(self):
+        for key, value in \
+                self.screen_content.get('create_ussd_variables', {}). \
+                        items():
+            self.ussd_request.session[key] = \
+                self.evaluate_jija_expression(value,
+                                              lazy_evaluating=True,
+                                              session=self.ussd_request.session
+                                              )
+
+    def load_variable_files(self):
+        variable_conf = self.screen_content['variables']
+        file_path = variable_conf['file']
+        namespace = variable_conf['namespace']
+
+        # check if it has been loaded
+        if not namespace in \
+                staticconf.config.configuration_namespaces:
+            load_yaml(file_path, namespace)
+
+        self.ussd_request.session.update(
+            staticconf.config.configuration_namespaces[namespace].
+            configuration_values
+        )
+
+    def set_language(self):
+        self.ussd_request.session['default_language'] = \
+            self.screen_content.get('default_language', 'en')
