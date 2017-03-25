@@ -41,7 +41,6 @@ def report_session(self, session_id, screen_content):
             logger=logger
         )
 
-        retry = True
         # check if it is the desired effect
         for expr in ussd_report_session_data['validate_response']:
             if UssdHandlerAbstract.evaluate_jija_expression(

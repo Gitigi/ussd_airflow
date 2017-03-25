@@ -156,8 +156,9 @@ class TestingUssdReportSession(UssdTestCase.BaseUssdTestCase, TestCase):
 
         mock_report_session.assert_has_calls(expected_calls)
 
+    @staticmethod
     @mock.patch('ussd.core.requests.request')
-    def test_http_call(self, mock_request):
+    def test_http_call(mock_request):
         mock_response = JsonResponse({"balance": 250})
         mock_request.return_value = mock_response
 
