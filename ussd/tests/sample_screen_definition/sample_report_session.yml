@@ -5,8 +5,8 @@ initial_screen:
     session_key: reported
     retry_mechanism:
       max_retries: 3
-    valid_status_code:
-      - 200
+    validate_response:
+      - expression: "{{reported.status_code}} == 200"
     request_conf:
       url: localhost:8006/api
       method: post

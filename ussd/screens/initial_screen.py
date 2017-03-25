@@ -9,11 +9,26 @@ class VariableDefinition(serializers.Serializer):
     namespace = serializers.CharField(max_length=100)
 
 
+class ValidateResposeSerialzier(serializers.Serializer):
+    expression = serializers.CharField(max_length=255)
+
+
+class UssdReportSessionSerializer(serializers.Serializer):
+    session_key = serializers.CharField(max_length=100)
+    validate_response = serializers.ListField(
+        child=ValidateResposeSerialzier()
+    )
+    request_conf = serializers.DictField()
+
+
+
 class InitialScreenSerializer(NextUssdScreenSerializer):
     variables = VariableDefinition(required=False)
     create_ussd_variables = serializers.DictField(default={})
     default_language = serializers.CharField(required=False,
                                              default="en")
+    ussd_report_session = UssdReportSessionSerializer(required=False)
+
 
 
 class InitialScreen(UssdHandlerAbstract):

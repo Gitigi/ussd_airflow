@@ -44,7 +44,9 @@ class TestingUssdReportSession(UssdTestCase.BaseUssdTestCase, TestCase):
                     "next_screen": "screen_one",
                     "ussd_report_session": {
                         "session_key": "reported",
-                        "valid_status_code": [200],
+                        "validate_response": [
+                            {"expression": "{{reported.status_code}} == 200"}
+                        ],
                         "retry_mechanism": {
                             "max_retries": 3
                         },
@@ -92,7 +94,10 @@ class TestingUssdReportSession(UssdTestCase.BaseUssdTestCase, TestCase):
                         "next_screen": "screen_one",
                         "ussd_report_session": {
                             "session_key": "reported",
-                            "valid_status_code": [200],
+                            "validate_response": [
+                                {"expression":
+                                    "{{reported.status_code}} == 200"}
+                            ],
                             "retry_mechanism": {
                                 "max_retries": 3
                             },
@@ -122,7 +127,11 @@ class TestingUssdReportSession(UssdTestCase.BaseUssdTestCase, TestCase):
                         "next_screen": "screen_one",
                         "ussd_report_session": {
                             "session_key": "reported",
-                            "valid_status_code": [200],
+                            "validate_response": [
+                                {"expression":
+                                     "{{reported.status_code}} == 200"}
+                            ]
+                            ,
                             "retry_mechanism": {
                                 "max_retries": 3
                             },
@@ -165,7 +174,10 @@ class TestingUssdReportSession(UssdTestCase.BaseUssdTestCase, TestCase):
                 "retry_mechanism": {
                     "max_retries": 3
                 },
-                "valid_status_code": [200],
+                "validate_response": [
+                                {"expression":
+                                    "{{reported.status_code}} == 200"}
+                            ],
                 "request_conf": {
                     "url": "localhost:8006/api",
                     "method": "post",
@@ -214,7 +226,10 @@ class TestingUssdReportSession(UssdTestCase.BaseUssdTestCase, TestCase):
                 "retry_mechanism": {
                     "max_retries": 3
                 },
-                "valid_status_code": [200],
+                "validate_response": [
+                                {"expression":
+                                    "{{reported.status_code}} == 200"}
+                            ],
                 "request_conf": {
                     "url": "localhost:8006/api",
                     "method": "post",

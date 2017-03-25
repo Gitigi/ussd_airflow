@@ -34,26 +34,30 @@ def report_session(self, session_id, screen_content):
     )
 
     if not session.get('posted'):
-        response = UssdHandlerAbstract.make_request(
+        UssdHandlerAbstract.make_request(
             http_request_conf=request_conf,
             response_session_key_save=ussd_report_session_data['session_key'],
             session=session,
             logger=logger
         )
 
+        retry = True
         # check if it is the desired effect
-        if response.status_code in \
-                ussd_report_session_data['valid_status_code']:
-            session['posted'] = True
-            session.save()
-            print("mwas")
-        else:
-            if ussd_report_session_data.get('retry_mechanism'):
-                try:
-                    self.retry(**screen_content[
+        for expr in ussd_report_session_data['validate_response']:
+            if UssdHandlerAbstract.evaluate_jija_expression(
+                expr['expression'],
+                session=session
+            ):
+                session['posted'] = True
+                session.save()
+                return
+
+        if ussd_report_session_data.get('retry_mechanism'):
+            try:
+                self.retry(**screen_content[
                         'ussd_report_session']['retry_mechanism'])
-                except MaxRetriesExceededError as e:
-                    logger.warning("report_session_error",
+            except MaxRetriesExceededError as e:
+                logger.warning("report_session_error",
                                    error_message=str(e))
     else:
         logger.info('already_reported')
